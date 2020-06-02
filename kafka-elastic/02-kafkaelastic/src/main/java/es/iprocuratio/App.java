@@ -48,21 +48,23 @@ public class App {
         final String topic = "logs";
         KafkaConsumer<String, String> consumer = getConsumer(topic);
         final RestHighLevelClient client = createClient();
-        IndexRequest request ;
+        IndexRequest request;
         IndexResponse indexResponse;
 
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
-
             for (ConsumerRecord<String, String> record : records) {
 
+                // Kafka generic id
+                String id = record.topic() + "_" + record.partition() + "_" + record.offset();
+
                 KafkaDTO result = new KafkaDTO(record);
-                request = new IndexRequest(record.topic())
-                    .source(result.toString(), XContentType.JSON);
+                request = new IndexRequest(record.topic()).id(id).source(result.toString(), XContentType.JSON);
                 indexResponse = client.index(request, RequestOptions.DEFAULT);
 
-                logger.info("Key: " + record.key() + " Value " + record.value()+ " id: "+ indexResponse.getId() +" result "+ result.toString());
+                logger.info("Key: " + record.key() + " Value " + record.value() + " id: " + indexResponse.getId()
+                        + " result " + result.toString());
                 logger.info("Partition: " + record.partition() + " Offset: " + record.offset());
             }
         }
